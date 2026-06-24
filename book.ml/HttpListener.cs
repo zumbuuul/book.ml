@@ -1,6 +1,7 @@
 using System.Net;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 internal sealed class HttpListener
 {
@@ -13,7 +14,7 @@ internal sealed class HttpListener
         listener.Prefixes.Add(Prefix);
         listener.Start();
 
-        Console.WriteLine($"Listening at {Prefix}?q=book1,book2");
+        Console.WriteLine($"Listening at {Prefix}");
 
         try
         {
@@ -38,7 +39,8 @@ internal sealed class HttpListener
     {
         string? q = context.Request.QueryString["q"];
         string[] books = ParseBooks(q);
-        var booksObs = books.ToObservable(TaskPoolScheduler.Default).Select(x => x).Subscribe( async (y) => { var res = await bookSearch.search(y); Console.WriteLine(res.Name); });
+        Console.WriteLine("MAIN " + Environment.CurrentManagedThreadId);
+        var booksObs = books.ToObservable().SelectMany(x => bookSearch.search(x)).Subscribe(y => Console.WriteLine("hello from " + y.Description));
         
         Console.WriteLine($"Request: {string.Join(", ", books)}");
 

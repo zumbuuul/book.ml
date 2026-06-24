@@ -19,16 +19,38 @@ public class BookSearch
 
     public async Task<Book> search(String endpoint)
     {
+        Console.WriteLine(Environment.CurrentManagedThreadId);
         String searchEndpoint = this.URL + endpoint + "&key=" + keys.loadKeys();
+        String desc = "";
         using var client = new HttpClient();
+        try{
         GoogleBookResponse? response = await client.GetFromJsonAsync<GoogleBookResponse>(searchEndpoint);
+        Console.WriteLine("after " + Environment.CurrentManagedThreadId);
         foreach(GoogleBook res in response!.Items)
         {
             if(res.VolumeInfo!.Description != null)
-            Console.WriteLine(res.VolumeInfo.Description);   
+            {
+            desc = res.VolumeInfo!.Description; 
+            break;
+            }
         }
-        Console.WriteLine("final endpoint: " + searchEndpoint);
-        return new Book(endpoint, "test", "test2");
+
+        if(desc == "")
+            {
+                throw new Exception("None of the google books have a description, please choose a different book.");
+            }
+        
+
+        }
+        catch(Exception e)
+        {
+            Console.Write(e.Message);
+        }
+        finally
+        {
+            
+        }
+        return new Book(endpoint, desc, searchEndpoint);
     }
 
 
