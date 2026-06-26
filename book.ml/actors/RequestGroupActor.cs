@@ -41,10 +41,10 @@ public class RequestGroupActor : UntypedActor
         }
     }
 
-    private async Task<Book[]> startFetchingMissingBooks()
+    private Task<Book[]> startFetchingMissingBooks()
     {
         var fetchTasks = missingBooks.Select(missing => kes.fetchBook(missing));
-        return await Task.WhenAll(fetchTasks);
+        return Task.WhenAll(fetchTasks);
     }
 
 

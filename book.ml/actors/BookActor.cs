@@ -5,6 +5,7 @@ public class BookActor : UntypedActor
 {
     private IObservable<Book> bookObservable;
     private String bookName;
+    private Book state;
     public BookActor(IObservable<Book> book, String name)
     {
         this.bookObservable = book;
@@ -22,7 +23,7 @@ public class BookActor : UntypedActor
         }
     }
 
-    
+
 
     public static Props Props(IObservable<Book> b, String bookName) => Akka.Actor.Props.Create(() => new BookActor(b, bookName));
 

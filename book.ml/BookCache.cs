@@ -6,14 +6,14 @@ using System.Reflection.Metadata.Ecma335;
 
 public class BookCache
 {
-    private IObservable<Book> clockObservable;
+    private IObservable<Book> bookObservable;
 
     private BookSearch bookSearch = new BookSearch("https://www.googleapis.com/books/v1/volumes?q=");
     private ConcurrentDictionary<String, Book> bookDiscovery = new ConcurrentDictionary<String, Book>(); 
 
     public BookCache()
     {
-        clockObservable = Observable.Interval(TimeSpan.FromSeconds(5))
+        bookObservable = Observable.Interval(TimeSpan.FromSeconds(5))
         .SelectMany(_ => Observable.FromAsync(fetchBooksAsync))
         .SelectMany(books => books.ToObservable());
     }
@@ -47,5 +47,5 @@ public class BookCache
         return book;
     }
 
-    public IObservable<Book> getBooksObservable () => this.clockObservable;
+    public IObservable<Book> getBooksObservable () => this.bookObservable;
 }
