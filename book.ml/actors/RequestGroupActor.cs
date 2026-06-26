@@ -69,7 +69,7 @@ public class RequestGroupActor : UntypedActor
         IObservable<HashSet<Book>> booksStream = Observable.Return(discoveredBooks);
         IActorRef topicModelActor = Context.ActorOf(Akka.Actor.Props.Create<TopicModelActor>());
 
-        topicModelActor.Tell(new RunTopicModeling(booksStream));
+        topicModelActor.Tell(new runTopicModeling(booksStream));
     }
 
     private void startProcessingBooks()
