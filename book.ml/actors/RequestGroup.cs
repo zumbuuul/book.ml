@@ -2,9 +2,10 @@ using Akka.Actor;
 
 public class RequestGroup : UntypedActor
 {
-    private String[] books;
+    private HashSet<String> books;
+    private HashSet<String> missingBooks = new HashSet<string>();
     private BookCache kes;
-    public RequestGroup(String[] b, BookCache k)
+    public RequestGroup(HashSet<String> b, BookCache k)
     {
         this.books = b;  
         this.kes = k; 
@@ -14,7 +15,9 @@ public class RequestGroup : UntypedActor
         switch(message)
         {
             case "read":
-            List<String> undiscovered = kes.checkCache(books);
+                this.missingBooks = kes.checkCache(books);
+                startFetchingMissingBooks();
+                startProcessingBooks();
                 break;
             
         }
@@ -22,14 +25,15 @@ public class RequestGroup : UntypedActor
 
     private void startProcessingBooks()
     {
-        
+        //start actors
     }
 
-    private void startFetchingMissingBooks()
+    private async Task<Book[]> startFetchingMissingBooks()
     {
-        
+        var fetchTasks = missingBooks.Select(missing => kes.fetchBook(missing));
+        return await Task.WhenAll(fetchTasks);
     }
 
 
-    public static Props Props(String[] b, BookCache k) => Akka.Actor.Props.Create(() => new RequestGroup(b, k));
+    public static Props Props(HashSet<String> b, BookCache k) => Akka.Actor.Props.Create(() => new RequestGroup(b, k));
 }

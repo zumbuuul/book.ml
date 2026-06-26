@@ -1,12 +1,14 @@
 using System.Collections.Concurrent;
+using System.Reflection;
 
 public class BookCache
 {
+    private BookSearch bookSearch = new BookSearch("https://www.googleapis.com/books/v1/volumes?q=");
     private ConcurrentDictionary<String, Book> bookDiscovery = new ConcurrentDictionary<string, Book>(); 
 
-    public List<String> checkCache(String[] books)
+    public HashSet<String> checkCache(HashSet<String> books)
     {
-        List<String> undiscoveredBooks = new List<String>();
+        HashSet<String> undiscoveredBooks = new HashSet<String>();
 
         foreach(String book in books)
         {
@@ -16,5 +18,12 @@ public class BookCache
         }  
 
         return undiscoveredBooks; 
+    }
+
+    public async Task<Book> fetchBook(String missingBook)
+    {
+        var book = await bookSearch.search(missingBook);
+        bookDiscovery.AddOrUpdate(missingBook, book, (k,v) => v);
+        return book;
     }
 }

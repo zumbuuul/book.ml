@@ -8,7 +8,7 @@ internal sealed class HttpListener
     ActorSystem sistem = ActorSystem.Create("knjige");
     BookCache kes = new BookCache();
     private readonly System.Net.HttpListener listener = new();
-    private BookSearch bookSearch = new BookSearch("https://www.googleapis.com/books/v1/volumes?q=");
+    
 
  
 
@@ -42,7 +42,7 @@ internal sealed class HttpListener
     {
      
         string? q = context.Request.QueryString["q"];
-        string[] books = ParseBooks(q);
+        HashSet<string> books = ParseBooks(q);
         Console.WriteLine("MAIN " + Environment.CurrentManagedThreadId);
         var prvi = sistem.ActorOf(Props.Create<RequestManager>(), "first");
         prvi.Tell("print", ActorRefs.NoSender);
@@ -63,13 +63,13 @@ internal sealed class HttpListener
         context.Response.Close();
     }
 
-    private static string[] ParseBooks(string? query)
+    private static HashSet<string> ParseBooks(string? query)
     {
         if (string.IsNullOrWhiteSpace(query))
         {
             return [];
         }
 
-        return query.Split(',');
+        return query.Split(',').ToHashSet();
     }
 }
