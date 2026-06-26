@@ -6,6 +6,7 @@ public class BookActor : UntypedActor
     private IObservable<Book> bookObservable;
     private String bookName;
     private Book state;
+    private IDisposable? subscription;
     public BookActor(IObservable<Book> book, String name)
     {
         this.bookObservable = book;
@@ -17,13 +18,19 @@ public class BookActor : UntypedActor
         switch(message)
         {
             case "read":
-                        bookObservable.Where(x => x.Name == this.bookName).Subscribe((book) => {this.state = book;Print();});
-
+                subscription = bookObservable
+                    .Where(x => x.Name == this.bookName)
+                    .Subscribe((book) => {this.state = book;Print();});
                 break;
         }
     }
 
     private void Print() => Console.WriteLine("hello from book actor, running on thread " + Environment.CurrentManagedThreadId + " storing book " + this.state.Description);
+
+    protected override void PostStop()
+    {
+        subscription?.Dispose();
+    }
 
     public static Props Props(IObservable<Book> b, String bookName) => Akka.Actor.Props.Create(() => new BookActor(b, bookName));
 
