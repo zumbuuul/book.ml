@@ -1,19 +1,21 @@
 using System.Collections.Concurrent;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Reflection;
 using System.Reflection.Metadata.Ecma335;
 
 public class BookCache
 {
-    private IObservable<long> clockObservable = Observable.Interval(TimeSpan.FromSeconds(5));
+    private IObservable<Book> clockObservable;
 
-    private IObservable<Book> booksObservable = Observable.Empty<Book>();
     private BookSearch bookSearch = new BookSearch("https://www.googleapis.com/books/v1/volumes?q=");
     private ConcurrentDictionary<String, Book> bookDiscovery = new ConcurrentDictionary<String, Book>(); 
 
     public BookCache()
     {
-        clockObservable.Subscribe( async (x) => {Console.WriteLine("clock produced value " + x); await fetchAllBooks();});
+        clockObservable = Observable.Interval(TimeSpan.FromSeconds(5))
+        .SelectMany(_ => Observable.FromAsync(fetchBooksAsync))
+        .SelectMany(books => books.ToObservable());
     }
 
     public HashSet<String> checkCache(HashSet<String> books)
@@ -31,11 +33,6 @@ public class BookCache
         return undiscoveredBooks; 
     }
 
-    public async Task fetchAllBooks()
-    {
-        this.booksObservable = Observable.FromAsync(()=>fetchBooksAsync()).SelectMany(books => books.ToObservable());
-    }
-
     private async Task<Book[]> fetchBooksAsync()
     {
         var keys = bookDiscovery.Keys;
@@ -50,5 +47,5 @@ public class BookCache
         return book;
     }
 
-    public IObservable<Book> getBooksObservable () => this.booksObservable;
+    public IObservable<Book> getBooksObservable () => this.clockObservable;
 }

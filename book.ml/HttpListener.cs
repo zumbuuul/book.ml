@@ -44,9 +44,7 @@ internal sealed class HttpListener
         string? q = context.Request.QueryString["q"];
         HashSet<string> books = ParseBooks(q);
         Console.WriteLine("MAIN " + Environment.CurrentManagedThreadId);
-        var prvi = sistem.ActorOf(Props.Create<RequestManager>(), "first");
-        prvi.Tell("print", ActorRefs.NoSender);
-        var grupa = sistem.ActorOf(RequestGroup.Props(books, kes));
+        var grupa = sistem.ActorOf(RequestGroupActor.Props(books, kes));
         grupa.Tell("read");
        // var booksObs = books.ToObservable().SelectMany(x => bookSearch.search(x)).Subscribe(y => Console.WriteLine("hello from " + y.Description));
         

@@ -1,16 +1,19 @@
 using System.Reactive.Linq;
 using Akka.Actor;
 
-public class RequestGroup : UntypedActor
+public class RequestGroupActor : UntypedActor
 {
     private HashSet<String> books;
     private HashSet<String> missingBooks = new HashSet<string>();
     private BookCache kes;
-    public RequestGroup(HashSet<String> b, BookCache k)
+    private IObservable<Book> bookObservable;
+    public RequestGroupActor(HashSet<String> b, BookCache k)
     {
         this.books = b;  
         this.kes = k;
-        var o = Observable.Interval(TimeSpan.FromSeconds(1)).Subscribe((x)=>Console.WriteLine(x));
+        this.bookObservable = k.getBooksObservable();
+
+        
     }
     protected override void OnReceive(object message)
     {
@@ -28,6 +31,14 @@ public class RequestGroup : UntypedActor
     private void startProcessingBooks()
     {
         //start actors
+        this.bookObservable = kes.getBooksObservable();
+        Console.WriteLine("this is books " + books.Count);
+        foreach(String bookName in books)
+        {
+            Console.WriteLine("created actor " + bookName);
+            var bookActor = Context.ActorOf(BookActor.Props(this.bookObservable, bookName));
+            bookActor.Tell("read");
+        }
     }
 
     private async Task<Book[]> startFetchingMissingBooks()
@@ -37,5 +48,5 @@ public class RequestGroup : UntypedActor
     }
 
 
-    public static Props Props(HashSet<String> b, BookCache k) => Akka.Actor.Props.Create(() => new RequestGroup(b, k));
+    public static Props Props(HashSet<String> b, BookCache k) => Akka.Actor.Props.Create(() => new RequestGroupActor(b, k));
 }
