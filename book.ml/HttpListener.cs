@@ -5,9 +5,15 @@ using Akka.Actor;
 internal sealed class HttpListener
 {
     private const string Prefix = "http://localhost:3000/";
-    ActorSystem sistem = ActorSystem.Create("knjige");
-    BookCache kes = new BookCache();
+    private readonly ActorSystem sistem = ActorSystem.Create("knjige");
+    private readonly BookCache kes = new BookCache();
+    private readonly IActorRef requestManager;
     private readonly System.Net.HttpListener listener = new();
+
+    public HttpListener()
+    {
+        requestManager = sistem.ActorOf(RequestManagerActor.Props(kes), "request-manager");
+    }
     
 
  
@@ -44,8 +50,7 @@ internal sealed class HttpListener
         string? q = context.Request.QueryString["q"];
         HashSet<string> books = ParseBooks(q);
         Console.WriteLine("MAIN " + Environment.CurrentManagedThreadId);
-        var grupa = sistem.ActorOf(RequestGroupActor.Props(books, kes));
-        grupa.Tell("read");
+        requestManager.Tell(new ProcessBookRequest(books));
        // var booksObs = books.ToObservable().SelectMany(x => bookSearch.search(x)).Subscribe(y => Console.WriteLine("hello from " + y.Description));
         
         Console.WriteLine($"Request: {string.Join(", ", books)}");
