@@ -1,6 +1,7 @@
 using System.Reactive.Linq;
 using Akka.Actor;
 using Microsoft.ML;
+using Microsoft.ML.Transforms.Text;
 
 public sealed record runTopicModeling(IObservable<HashSet<Book>> booksStream);
 public sealed record topicScore(string topic, double percentage);
@@ -68,9 +69,11 @@ public class TopicModelActor : UntypedActor
             .Append(mlContext.Transforms.Text.LatentDirichletAllocation(
                 "features",
                 "ngrams",
-                numberOfTopics: topicCount));
+                numberOfTopics: topicCount,
+                numberOfSummaryTermsPerTopic: 5));
 
         var model = pipeline.Fit(data);
+        List<string> topicNames = getTopicNames(model.LastTransformer, topicCount);
         var transformed = model.Transform(data);
         List<topicPrediction> predictions = mlContext.Data
             .CreateEnumerable<topicPrediction>(transformed, reuseRowObject: false)
@@ -80,10 +83,37 @@ public class TopicModelActor : UntypedActor
             .Select(prediction => new bookTopicResult(
                 prediction.bookName,
                 prediction.features.Select((score, index) =>
-                    new topicScore("topic " + (index + 1), toPercentage(score, prediction.features))).ToList()))
+                    new topicScore(topicNames[index], toPercentage(score, prediction.features))).ToList()))
             .ToList();
 
         return new topicModelingCompleted(results);
+    }
+
+    private static List<string> getTopicNames(LatentDirichletAllocationTransformer transformer, int topicCount)
+    {
+        var ldaDetails = transformer.GetLdaDetails(0);
+
+        List<string> topicNames = ldaDetails.WordScoresPerTopic
+            .Take(topicCount)
+            .Select((topicWords, index) =>
+            {
+                List<string> words = topicWords
+                    .OrderByDescending(word => word.Score)
+                    .Take(5)
+                    .Select(word => word.Word)
+                    .Where(word => !string.IsNullOrWhiteSpace(word))
+                    .ToList();
+
+                return words.Count == 0 ? "topic " + (index + 1) : string.Join(", ", words);
+            })
+            .ToList();
+
+        while (topicNames.Count < topicCount)
+        {
+            topicNames.Add("topic " + (topicNames.Count + 1));
+        }
+
+        return topicNames;
     }
 
     private void tryCompleteTopicModeling(HashSet<Book> books)
