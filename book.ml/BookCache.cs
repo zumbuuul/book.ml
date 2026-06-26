@@ -13,9 +13,11 @@ public class BookCache
 
     public BookCache()
     {
-        bookObservable = Observable.Interval(TimeSpan.FromSeconds(5))
+        bookObservable = Observable.Timer(TimeSpan.Zero, TimeSpan.FromSeconds(5))
         .SelectMany(_ => Observable.FromAsync(fetchBooksAsync))
-        .SelectMany(books => books.ToObservable());
+        .SelectMany(books => books.ToObservable())
+        .Publish()
+        .RefCount();
     }
 
     public HashSet<String> checkCache(HashSet<String> books)
@@ -45,6 +47,21 @@ public class BookCache
         var book = await bookSearch.search(missingBook);
         bookDiscovery.AddOrUpdate(missingBook, book, (k,v) => v);
         return book;
+    }
+
+    public HashSet<Book> getBooksForTopicModeling(HashSet<string> books)
+    {
+        HashSet<Book> discoveredBooks = new HashSet<Book>();
+
+        foreach (string bookName in books)
+        {
+            if (bookDiscovery.TryGetValue(bookName, out Book? book))
+            {
+                discoveredBooks.Add(book);
+            }
+        }
+
+        return discoveredBooks;
     }
 
     public IObservable<Book> getBooksObservable () => this.bookObservable;

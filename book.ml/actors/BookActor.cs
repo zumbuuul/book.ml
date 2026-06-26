@@ -17,13 +17,13 @@ public class BookActor : UntypedActor
         switch(message)
         {
             case "read":
-                        bookObservable.Where(x => x.Name == this.bookName).Subscribe(book => Console.WriteLine(book.Name));
+                        bookObservable.Where(x => x.Name == this.bookName).Subscribe((book) => {this.state = book;Print();});
 
                 break;
         }
     }
 
-
+    private void Print() => Console.WriteLine("hello from book actor, running on thread " + Environment.CurrentManagedThreadId + " storing book " + this.state.Description);
 
     public static Props Props(IObservable<Book> b, String bookName) => Akka.Actor.Props.Create(() => new BookActor(b, bookName));
 
