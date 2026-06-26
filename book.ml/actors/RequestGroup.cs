@@ -1,3 +1,4 @@
+using System.Reactive.Linq;
 using Akka.Actor;
 
 public class RequestGroup : UntypedActor
@@ -8,7 +9,8 @@ public class RequestGroup : UntypedActor
     public RequestGroup(HashSet<String> b, BookCache k)
     {
         this.books = b;  
-        this.kes = k; 
+        this.kes = k;
+        var o = Observable.Interval(TimeSpan.FromSeconds(1)).Subscribe((x)=>Console.WriteLine(x));
     }
     protected override void OnReceive(object message)
     {
