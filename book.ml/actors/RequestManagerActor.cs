@@ -18,7 +18,7 @@ public class RequestManagerActor : UntypedActor
         switch (message)
         {
             case ProcessBookRequest request:
-                StartRequestGroup(request.Books);
+                StartRequestGroup(request.Books, Sender);
                 break;
             case Terminated terminated:
                 RemoveRequestGroup(terminated.ActorRef);
@@ -26,7 +26,7 @@ public class RequestManagerActor : UntypedActor
         }
     }
 
-    private void StartRequestGroup(HashSet<string> books)
+    private void StartRequestGroup(HashSet<string> books, IActorRef replyTo)
     {
         Guid requestId = Guid.NewGuid();
         string actorName = $"request-group-{requestId:N}";
@@ -39,7 +39,7 @@ public class RequestManagerActor : UntypedActor
         Console.WriteLine($"RequestManager started group {requestId} for {books.Count} books");
         Console.WriteLine($"Active request groups: {groupsByRequestId.Count}");
 
-        group.Tell("read");
+        group.Tell("read", replyTo);
     }
 
     private void RemoveRequestGroup(IActorRef group)

@@ -2,6 +2,7 @@ using System.Net;
 using System.Reactive.Linq;
 using System.Text.Json;
 using Akka.Actor;
+using Akka.Pattern;
 internal sealed class HttpListener
 {
     private const string Prefix = "http://localhost:3000/";
@@ -50,18 +51,32 @@ internal sealed class HttpListener
         string? q = context.Request.QueryString["q"];
         HashSet<string> books = ParseBooks(q);
         Console.WriteLine("MAIN " + Environment.CurrentManagedThreadId);
-        requestManager.Tell(new ProcessBookRequest(books));
-       // var booksObs = books.ToObservable().SelectMany(x => bookSearch.search(x)).Subscribe(y => Console.WriteLine("hello from " + y.Description));
-        
         Console.WriteLine($"Request: {string.Join(", ", books)}");
 
         context.Response.ContentType = "application/json";
-        context.Response.StatusCode = (int)HttpStatusCode.OK;
 
-        await JsonSerializer.SerializeAsync(
-            context.Response.OutputStream,
-            new { books },
-            cancellationToken: cancellationToken);
+        try
+        {
+            object response = await requestManager.Ask<object>(
+                new ProcessBookRequest(books),
+                TimeSpan.FromSeconds(60));
+
+            context.Response.StatusCode = (int)HttpStatusCode.OK;
+
+            await JsonSerializer.SerializeAsync(
+                context.Response.OutputStream,
+                response,
+                cancellationToken: cancellationToken);
+        }
+        catch (Exception error)
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+
+            await JsonSerializer.SerializeAsync(
+                context.Response.OutputStream,
+                new { error = error.Message },
+                cancellationToken: cancellationToken);
+        }
 
         context.Response.Close();
     }

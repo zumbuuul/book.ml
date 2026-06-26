@@ -6,6 +6,7 @@ public class RequestGroupActor : UntypedActor
     private sealed record FetchCompleted(Book[] Books);
     private sealed record FetchFailed(Exception Error);
 
+    private IActorRef replyTo = ActorRefs.Nobody;
     private HashSet<String> books;
     private HashSet<String> missingBooks = new HashSet<string>();
     private BookCache kes;
@@ -23,14 +24,21 @@ public class RequestGroupActor : UntypedActor
         switch(message)
         {
             case "read":
+                replyTo = Sender;
                 StartRequest();
                 break;
             case FetchCompleted completed:
                 finishRequest(completed.Books);
                 break;
             case FetchFailed failed:
-                Console.WriteLine("Request group failed: " + failed.Error.Message);
+                failRequest(failed.Error.Message);
                 break; 
+            case topicModelingCompleted completed:
+                completeRequest(completed);
+                break;
+            case topicModelingFailed failed:
+                failRequest(failed.error);
+                break;
            
         }
     }
@@ -69,7 +77,33 @@ public class RequestGroupActor : UntypedActor
         IObservable<HashSet<Book>> booksStream = Observable.Return(discoveredBooks);
         IActorRef topicModelActor = Context.ActorOf(Akka.Actor.Props.Create<TopicModelActor>());
 
-        topicModelActor.Tell(new runTopicModeling(booksStream));
+        topicModelActor.Tell(new runTopicModeling(booksStream), Self);
+    }
+
+    private void completeRequest(topicModelingCompleted completed)
+    {
+        var response = new
+        {
+            books = completed.results.Select(book => new
+            {
+                name = book.bookName,
+                topics = book.topics.Select(topic => new
+                {
+                    name = topic.topic,
+                    percentage = topic.percentage
+                }).ToList()
+            }).ToList()
+        };
+
+        replyTo.Tell(response, Self);
+        Context.Stop(Self);
+    }
+
+    private void failRequest(string error)
+    {
+        Console.WriteLine("Request group failed: " + error);
+        replyTo.Tell(new Status.Failure(new Exception(error)), Self);
+        Context.Stop(Self);
     }
 
     private void startProcessingBooks()
