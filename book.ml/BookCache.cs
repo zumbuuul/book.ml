@@ -21,7 +21,7 @@ public class BookCache
             .Timer(TimeSpan.Zero, TimeSpan.FromSeconds(5), TaskPoolScheduler.Default)
             .SelectMany(_ =>
             {
-                Console.WriteLine("Broj kljuceva " + trackedBookNames.Keys.Count);
+                Console.WriteLine("Number of keys: " + trackedBookNames.Keys.Count);
                 return trackedBookNames.Keys.ToObservable();
             });
 
@@ -30,8 +30,6 @@ public class BookCache
 
         IConnectableObservable<Book> connectedObservable = periodicRefreshStream
             .Merge(requestedBooksStream)
-            .Select(normalizeBookName)
-            .Where(bookName => !string.IsNullOrWhiteSpace(bookName))
             .Where(bookName => inFlightBooks.TryAdd(bookName, 0))
             .SelectMany(fetchBookThroughRx)
             .Publish();
@@ -42,7 +40,7 @@ public class BookCache
 
     public void requestMissingBooks(IEnumerable<string> books)
     {
-        foreach (string book in books.Select(normalizeBookName).Where(book => !string.IsNullOrWhiteSpace(book)))
+        foreach (string book in books)
         {
             trackedBookNames.TryAdd(book, 0);
             missingBookRequestSink.OnNext(book);
@@ -57,9 +55,8 @@ public class BookCache
             .Where(book => !string.IsNullOrWhiteSpace(book.Description))
             .Do(book =>
             {
-                string normalizedBookName = normalizeBookName(book.Name);
-                trackedBookNames.TryAdd(normalizedBookName, 0);
-                Console.WriteLine("Rx emitted book " + normalizedBookName + " on thread " + Environment.CurrentManagedThreadId);
+                trackedBookNames.TryAdd(book.Name, 0);
+                Console.WriteLine("Rx emitted book " + book.Name + " on thread " + Environment.CurrentManagedThreadId);
             })
             .Catch<Book, Exception>(error =>
             {
@@ -69,5 +66,4 @@ public class BookCache
             .Finally(() => inFlightBooks.TryRemove(bookName, out _));
     }
 
-    private static string normalizeBookName(string bookName) => bookName.Trim();
 }

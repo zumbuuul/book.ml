@@ -44,8 +44,8 @@ default-fork-join-dispatcher {
             {
                 HttpListenerContext context = await listener.GetContextAsync()
                     .WaitAsync(cancellationToken);
-            Console.WriteLine("STIGO REQUEST! ");
-                _ = HandleAsync(context, cancellationToken);
+            Console.WriteLine("Request arrived");
+                HandleAsync(context, cancellationToken);
             }
         }
         catch (OperationCanceledException)
