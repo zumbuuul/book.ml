@@ -1,9 +1,11 @@
 using Akka.Actor;
+using Akka.Event;
 
 public sealed record ProcessBookRequest(HashSet<string> Books);
 
 public class RequestManagerActor : UntypedActor
 {
+    private ILoggingAdapter Log {get; } = Context.GetLogger();
     private readonly BookCache kes;
     private readonly Dictionary<Guid, IActorRef> groupsByRequestId = new();
     private readonly Dictionary<IActorRef, Guid> requestIdsByGroup = new();
@@ -36,8 +38,8 @@ public class RequestManagerActor : UntypedActor
         requestIdsByGroup[group] = requestId;
         Context.Watch(group);
 
-        Console.WriteLine($"RequestManager started group {requestId} for {books.Count} books");
-        Console.WriteLine($"Active request groups: {groupsByRequestId.Count}");
+        Log.Info($"RequestManager started group {requestId} for {books.Count} books");
+        Log.Info($"Active request groups: {groupsByRequestId.Count}");
 
         group.Tell("read", replyTo);
     }
@@ -52,8 +54,8 @@ public class RequestManagerActor : UntypedActor
         requestIdsByGroup.Remove(group);
         groupsByRequestId.Remove(requestId);
 
-        Console.WriteLine($"RequestManager removed group {requestId}");
-        Console.WriteLine($"Active request groups: {groupsByRequestId.Count}");
+        Log.Info($"RequestManager removed group {requestId}");
+        Log.Info($"Active request groups: {groupsByRequestId.Count}");
     }
 
     public static Props Props(BookCache k) => Akka.Actor.Props.Create(() => new RequestManagerActor(k));

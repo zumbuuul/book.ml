@@ -1,8 +1,10 @@
 using System.Reactive.Linq;
 using Akka.Actor;
+using Akka.Event;
 
 public class RequestGroupActor : UntypedActor
 {
+    private ILoggingAdapter Log {get; } = Context.GetLogger();
     private sealed record FetchCompleted(Book[] Books);
     private sealed record FetchFailed(Exception Error);
 
@@ -28,7 +30,7 @@ public class RequestGroupActor : UntypedActor
                 StartRequest();
                 break;
             case FetchCompleted completed:
-                finishRequest(completed.Books);
+                continueRequest(completed.Books);
                 break;
             case FetchFailed failed:
                 failRequest(failed.Error.Message);
@@ -46,7 +48,7 @@ public class RequestGroupActor : UntypedActor
     private void StartRequest()
     {
         this.missingBooks = kes.checkCache(books);
-        Console.WriteLine("missing books " + this.missingBooks.Count);
+        Log.Info("Missing books " + this.missingBooks.Count + " on thread " + Environment.CurrentManagedThreadId );
 
         fetchMissingBooksAndNotifySelf(this.missingBooks.ToArray(), Self);
     }
@@ -64,9 +66,9 @@ public class RequestGroupActor : UntypedActor
         }
     }
 
-    private void finishRequest(Book[] fetchedBooks)
+    private void continueRequest(Book[] fetchedBooks)
     {
-        Console.WriteLine("finished fetching " + fetchedBooks.Length + " missing books");
+        Log.Info("finished fetching " + fetchedBooks.Length + " missing books");
         startTopicModeling();
         startProcessingBooks();
     }
@@ -102,7 +104,7 @@ public class RequestGroupActor : UntypedActor
 
     private void failRequest(string error)
     {
-        Console.WriteLine("Request group failed: " + error);
+        Log.Error("Request group failed: " + error);
         replyTo.Tell(new Status.Failure(new Exception(error)), Self);
         Context.Stop(Self);
     }
@@ -113,8 +115,8 @@ public class RequestGroupActor : UntypedActor
         this.bookObservable = kes.getBooksObservable();
         foreach(String bookName in books)
         {
-        Console.WriteLine("this thread created the actor " + Environment.CurrentManagedThreadId);
-            Console.WriteLine("created actor for " + bookName);
+            Log.Info("this thread created the actor " + Environment.CurrentManagedThreadId);
+            Log.Info("created actor for " + bookName);
             var bookActor = Context.ActorOf(BookActor.Props(this.bookObservable, bookName));
             bookActor.Tell("read");
         }

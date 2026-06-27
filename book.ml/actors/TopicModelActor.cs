@@ -70,6 +70,9 @@ public class TopicModelActor : UntypedActor
                 "features",
                 "ngrams",
                 numberOfTopics: topicCount,
+                maximumNumberOfIterations: 30,
+                likelihoodInterval: 1000,
+                numberOfThreads: 1,
                 numberOfSummaryTermsPerTopic: 5));
 
         var model = pipeline.Fit(data);

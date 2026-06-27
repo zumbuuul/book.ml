@@ -44,7 +44,7 @@ default-fork-join-dispatcher {
             {
                 HttpListenerContext context = await listener.GetContextAsync()
                     .WaitAsync(cancellationToken);
-
+            Console.WriteLine("STIGO REQUEST! ");
                 HandleAsync(context, cancellationToken);
             }
         }
@@ -62,8 +62,7 @@ default-fork-join-dispatcher {
      
         string? q = context.Request.QueryString["q"];
         HashSet<string> books = ParseBooks(q);
-        Console.WriteLine("MAIN " + Environment.CurrentManagedThreadId);
-        Console.WriteLine($"Request: {string.Join(", ", books)}");
+        Console.WriteLine("MAIN THREAD " + Environment.CurrentManagedThreadId + $" WORKING ON REQUEST {string.Join(", ", books)}");
 
         context.Response.ContentType = "application/json";
 
@@ -73,6 +72,7 @@ default-fork-join-dispatcher {
                 new ProcessBookRequest(books),
                 TimeSpan.FromSeconds(10));
 
+        Console.WriteLine("CONTINUED REQUEST AFTER AWAITING PROCESSING " + Environment.CurrentManagedThreadId);
             context.Response.StatusCode = (int)HttpStatusCode.OK;
 
             await JsonSerializer.SerializeAsync(
@@ -83,6 +83,7 @@ default-fork-join-dispatcher {
         catch (Exception error)
         {
             context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+            Console.WriteLine($"Error handling request for {string.Join(", ", books)} - {error.Message}");
 
             await JsonSerializer.SerializeAsync(
                 context.Response.OutputStream,
