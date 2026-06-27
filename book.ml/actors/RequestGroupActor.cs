@@ -142,7 +142,7 @@ public class RequestGroupActor : UntypedActor
         };
 
         replyTo.Tell(response, Self);
-        Context.Stop(Self);
+        //Context.Stop(Self);
     }
 
     private void failRequest(string error)
