@@ -5,8 +5,25 @@ using Akka.Event;
 public class RequestGroupActor : UntypedActor
 {
     private ILoggingAdapter Log {get; } = Context.GetLogger();
-    private sealed record FetchCompleted(Book[] Books);
-    private sealed record FetchFailed(Exception Error);
+    public sealed class FetchCompleted
+    {
+        public FetchCompleted(Book[] Books)
+        {
+            this.Books = Books;
+        }
+
+        public Book[] Books { get; }
+    }
+
+    public sealed class FetchFailed
+    {
+        public FetchFailed(Exception Error)
+        {
+            this.Error = Error;
+        }
+
+        public Exception Error { get; }
+    }
 
     private IActorRef replyTo = ActorRefs.Nobody;
     private HashSet<String> books;
@@ -99,7 +116,7 @@ public class RequestGroupActor : UntypedActor
         };
 
         replyTo.Tell(response, Self);
-        Context.Stop(Self);
+        //Context.Stop(Self);
     }
 
     private void failRequest(string error)

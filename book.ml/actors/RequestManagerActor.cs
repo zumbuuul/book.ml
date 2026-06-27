@@ -1,7 +1,15 @@
 using Akka.Actor;
 using Akka.Event;
 
-public sealed record ProcessBookRequest(HashSet<string> Books);
+public sealed class ProcessBookRequest
+{
+    public ProcessBookRequest(HashSet<string> Books)
+    {
+        this.Books = Books;
+    }
+
+    public HashSet<string> Books { get; }
+}
 
 public class RequestManagerActor : UntypedActor
 {

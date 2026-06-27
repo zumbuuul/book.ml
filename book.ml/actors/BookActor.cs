@@ -1,9 +1,20 @@
 using System.Reactive.Linq;
 using Akka.Actor;
+using Akka.Event;
 
 public class BookActor : UntypedActor
 {
-    private sealed record BookUpdated(Book book);
+    public sealed class BookUpdated
+    {
+        public BookUpdated(Book book)
+        {
+            this.book = book;
+        }
+
+        public Book book { get; }
+    }
+
+    private ILoggingAdapter Log {get;} = Context.GetLogger();
 
     private IObservable<Book> bookObservable;
     private String bookName;
@@ -20,9 +31,14 @@ public class BookActor : UntypedActor
         switch(message)
         {
             case "read":
+                Console.WriteLine("START READING");
+                var self = Self;
                 subscription = bookObservable
                     .Where(x => x.Name == this.bookName)
-                    .Subscribe(book => Self.Tell(new BookUpdated(book)));
+                    .Subscribe(
+                        book => self.Tell(new BookUpdated(book)),
+                        e => Log.Error(e.Message),
+                        ()=>Log.Info("STREAM OVER"));
                 break;
             case BookUpdated updated:
                 this.state = updated.book;
@@ -31,10 +47,11 @@ public class BookActor : UntypedActor
         }
     }
 
-    private void Print() => Console.WriteLine("hello from book actor, running on thread " + Environment.CurrentManagedThreadId + " storing book " + this.state.Description);
+    private void Print() => Log.Info("hello from book actor, running on thread " + Environment.CurrentManagedThreadId + " storing book " + this.state.Description);
 
     protected override void PostStop()
     {
+        Log.Info("UGASEN");
         subscription?.Dispose();
     }
 

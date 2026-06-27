@@ -40,6 +40,7 @@ public class BookCache
     private async Task<Book[]> fetchBooksAsync()
     {
         var keys = bookDiscovery.Keys;
+        Console.WriteLine("Broj kljuceva " + keys.Count);
         var bookTasks = keys.Select(key => bookSearch.search(key));
         return await Task.WhenAll(bookTasks);
     }

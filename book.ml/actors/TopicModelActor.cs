@@ -3,15 +3,71 @@ using Akka.Actor;
 using Microsoft.ML;
 using Microsoft.ML.Transforms.Text;
 
-public sealed record runTopicModeling(IObservable<HashSet<Book>> booksStream);
-public sealed record topicScore(string topic, double percentage);
-public sealed record bookTopicResult(string bookName, List<topicScore> topics);
-public sealed record topicModelingCompleted(List<bookTopicResult> results);
-public sealed record topicModelingFailed(string error);
+public sealed class runTopicModeling
+{
+    public runTopicModeling(IObservable<HashSet<Book>> booksStream)
+    {
+        this.booksStream = booksStream;
+    }
+
+    public IObservable<HashSet<Book>> booksStream { get; }
+}
+
+public sealed class topicScore
+{
+    public topicScore(string topic, double percentage)
+    {
+        this.topic = topic;
+        this.percentage = percentage;
+    }
+
+    public string topic { get; }
+    public double percentage { get; }
+}
+
+public sealed class bookTopicResult
+{
+    public bookTopicResult(string bookName, List<topicScore> topics)
+    {
+        this.bookName = bookName;
+        this.topics = topics;
+    }
+
+    public string bookName { get; }
+    public List<topicScore> topics { get; }
+}
+
+public sealed class topicModelingCompleted
+{
+    public topicModelingCompleted(List<bookTopicResult> results)
+    {
+        this.results = results;
+    }
+
+    public List<bookTopicResult> results { get; }
+}
+
+public sealed class topicModelingFailed
+{
+    public topicModelingFailed(string error)
+    {
+        this.error = error;
+    }
+
+    public string error { get; }
+}
 
 public class TopicModelActor : UntypedActor
 {
-    private sealed record booksReady(HashSet<Book> books);
+    public sealed class booksReady
+    {
+        public booksReady(HashSet<Book> books)
+        {
+            this.books = books;
+        }
+
+        public HashSet<Book> books { get; }
+    }
 
     private IActorRef replyTo = ActorRefs.Nobody;
     private IDisposable? subscription;
