@@ -13,6 +13,7 @@ public class BookCache
 
     public BookCache()
     {
+        Console.WriteLine("cache thread " + Environment.CurrentManagedThreadId);
         bookObservable = Observable.Timer(TimeSpan.Zero, TimeSpan.FromSeconds(5))
         .SelectMany(_ => Observable.FromAsync(fetchBooksAsync))
         .SelectMany(books => books.ToObservable())

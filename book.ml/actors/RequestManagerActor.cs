@@ -29,7 +29,7 @@ public class RequestManagerActor : UntypedActor
     private void StartRequestGroup(HashSet<string> books, IActorRef replyTo)
     {
         Guid requestId = Guid.NewGuid();
-        string actorName = $"request-group-{requestId:N}";
+        string actorName = $"request-group-{requestId}";
         IActorRef group = Context.ActorOf(RequestGroupActor.Props(books, kes), actorName);
 
         groupsByRequestId[requestId] = group;

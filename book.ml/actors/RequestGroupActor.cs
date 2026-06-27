@@ -48,7 +48,7 @@ public class RequestGroupActor : UntypedActor
         this.missingBooks = kes.checkCache(books);
         Console.WriteLine("missing books " + this.missingBooks.Count);
 
-        _ = fetchMissingBooksAndNotifySelf(this.missingBooks.ToArray(), Self);
+        fetchMissingBooksAndNotifySelf(this.missingBooks.ToArray(), Self);
     }
 
     private async Task fetchMissingBooksAndNotifySelf(IEnumerable<string> booksToFetch, IActorRef replyTo)
@@ -75,7 +75,8 @@ public class RequestGroupActor : UntypedActor
     {
         HashSet<Book> discoveredBooks = kes.getBooksForTopicModeling(books);
         IObservable<HashSet<Book>> booksStream = Observable.Return(discoveredBooks);
-        IActorRef topicModelActor = Context.ActorOf(Akka.Actor.Props.Create<TopicModelActor>());
+        IActorRef topicModelActor = Context.ActorOf(
+            Akka.Actor.Props.Create<TopicModelActor>().WithDispatcher("default-fork-join-dispatcher"));
 
         topicModelActor.Tell(new runTopicModeling(booksStream), Self);
     }
@@ -120,6 +121,7 @@ public class RequestGroupActor : UntypedActor
 
     private async Task<Book[]> startFetchingMissingBooks(IEnumerable<string> booksToFetch)
     {
+        
         var fetchTasks = booksToFetch.Select(missing => kes.fetchBook(missing));
         return await Task.WhenAll(fetchTasks);
     }

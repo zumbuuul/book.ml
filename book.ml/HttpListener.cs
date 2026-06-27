@@ -2,11 +2,23 @@ using System.Net;
 using System.Reactive.Linq;
 using System.Text.Json;
 using Akka.Actor;
+using Akka.Configuration;
 using Akka.Pattern;
 internal sealed class HttpListener
 {
     private const string Prefix = "http://localhost:3000/";
-    private readonly ActorSystem sistem = ActorSystem.Create("knjige");
+    private static readonly Config ActorConfig = ConfigurationFactory.ParseString(@"
+default-fork-join-dispatcher {
+  type = ForkJoinDispatcher
+  throughput = 30
+  dedicated-thread-pool {
+      thread-count = 3
+      deadlock-timeout = 3s
+      threadtype = background
+  }
+}");
+
+    private readonly ActorSystem sistem = ActorSystem.Create("knjige", ActorConfig);
     private readonly BookCache kes = new BookCache();
     private readonly IActorRef requestManager;
     private readonly System.Net.HttpListener listener = new();
@@ -59,7 +71,7 @@ internal sealed class HttpListener
         {
             object response = await requestManager.Ask<object>(
                 new ProcessBookRequest(books),
-                TimeSpan.FromSeconds(60));
+                TimeSpan.FromSeconds(10));
 
             context.Response.StatusCode = (int)HttpStatusCode.OK;
 
