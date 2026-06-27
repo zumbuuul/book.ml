@@ -47,11 +47,19 @@ public class TopicModelActor : UntypedActor
 
     private static topicModelingCompleted runTopicModeling(HashSet<Book> books)
     {
-       
+        List<topicInput> input = books
+            .Where(book => !string.IsNullOrWhiteSpace(book.Description))
+            .Select(book => new topicInput { bookName = book.Name, text = book.Description })
+            .ToList();
+
+        if (input.Count == 0)
+        {
+            return new topicModelingCompleted([]);
+        }
 
         MLContext mlContext = new MLContext(1);
         const int topicCount = 3;
-        var data = mlContext.Data.LoadFromEnumerable(books);
+        var data = mlContext.Data.LoadFromEnumerable(input);
 
         var pipeline = mlContext.Transforms.Text.NormalizeText("normalizedText", "text")
             .Append(mlContext.Transforms.Text.TokenizeIntoWords("tokens", "normalizedText"))

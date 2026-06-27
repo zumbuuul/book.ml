@@ -3,6 +3,8 @@ using Akka.Actor;
 
 public class BookActor : UntypedActor
 {
+    private sealed record BookUpdated(Book book);
+
     private IObservable<Book> bookObservable;
     private String bookName;
     private Book state;
@@ -20,7 +22,11 @@ public class BookActor : UntypedActor
             case "read":
                 subscription = bookObservable
                     .Where(x => x.Name == this.bookName)
-                    .Subscribe((book) => {this.state = book;Print();});
+                    .Subscribe(book => Self.Tell(new BookUpdated(book)));
+                break;
+            case BookUpdated updated:
+                this.state = updated.book;
+                Print();
                 break;
         }
     }

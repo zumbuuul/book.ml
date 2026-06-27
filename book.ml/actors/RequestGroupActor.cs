@@ -113,6 +113,7 @@ public class RequestGroupActor : UntypedActor
         this.bookObservable = kes.getBooksObservable();
         foreach(String bookName in books)
         {
+        Console.WriteLine("this thread created the actor " + Environment.CurrentManagedThreadId);
             Console.WriteLine("created actor for " + bookName);
             var bookActor = Context.ActorOf(BookActor.Props(this.bookObservable, bookName));
             bookActor.Tell("read");

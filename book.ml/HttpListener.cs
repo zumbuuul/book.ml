@@ -45,7 +45,7 @@ default-fork-join-dispatcher {
                 HttpListenerContext context = await listener.GetContextAsync()
                     .WaitAsync(cancellationToken);
 
-                await HandleAsync(context, cancellationToken);
+                HandleAsync(context, cancellationToken);
             }
         }
         catch (OperationCanceledException)

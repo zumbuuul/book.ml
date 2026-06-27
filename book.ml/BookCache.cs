@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Reflection;
@@ -14,7 +15,7 @@ public class BookCache
     public BookCache()
     {
         Console.WriteLine("cache thread " + Environment.CurrentManagedThreadId);
-        bookObservable = Observable.Timer(TimeSpan.Zero, TimeSpan.FromSeconds(5))
+        bookObservable = Observable.Timer(TimeSpan.Zero, TimeSpan.FromSeconds(5), TaskPoolScheduler.Default)
         .SelectMany(_ => Observable.FromAsync(fetchBooksAsync))
         .SelectMany(books => books.ToObservable())
         .Publish()
