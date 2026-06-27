@@ -45,7 +45,7 @@ default-fork-join-dispatcher {
                 HttpListenerContext context = await listener.GetContextAsync()
                     .WaitAsync(cancellationToken);
             Console.WriteLine("STIGO REQUEST! ");
-                HandleAsync(context, cancellationToken);
+                _ = HandleAsync(context, cancellationToken);
             }
         }
         catch (OperationCanceledException)
@@ -101,6 +101,9 @@ default-fork-join-dispatcher {
             return [];
         }
 
-        return query.Split(',').ToHashSet();
+        return query.Split(',')
+            .Select(book => book.Trim())
+            .Where(book => !string.IsNullOrWhiteSpace(book))
+            .ToHashSet();
     }
 }

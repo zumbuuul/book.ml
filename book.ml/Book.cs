@@ -1,13 +1,13 @@
 public class Book
 {
-    public String Name {get;}
-    public String Description {get;}
-    public String URL {get;}
+    public string Name {get;} = "";
+    public string Description {get;} = "";
+    public string URL {get;} = "";
     public Book()
     {
         
     }
-    public Book(String n, String d, String u)
+    public Book(string n, string d, string u)
     {
     Name = n;
     Description = d;

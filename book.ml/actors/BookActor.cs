@@ -16,11 +16,11 @@ public class BookActor : UntypedActor
 
     private ILoggingAdapter Log {get;} = Context.GetLogger();
 
-    private IObservable<Book> bookObservable;
-    private String bookName;
-    private Book state;
+    private readonly IObservable<Book> bookObservable;
+    private readonly string bookName;
+    private Book? state;
     private IDisposable? subscription;
-    public BookActor(IObservable<Book> book, String name)
+    public BookActor(IObservable<Book> book, string name)
     {
         this.bookObservable = book;
         this.bookName = name;
@@ -31,6 +31,11 @@ public class BookActor : UntypedActor
         switch(message)
         {
             case "read":
+                if (subscription is not null)
+                {
+                    return;
+                }
+
                 Console.WriteLine("START READING");
                 var self = Self;
                 subscription = bookObservable
@@ -47,7 +52,7 @@ public class BookActor : UntypedActor
         }
     }
 
-    private void Print() => Log.Info("hello from book actor, running on thread " + Environment.CurrentManagedThreadId + " storing book " + this.state.Description);
+    private void Print() => Log.Info("hello from book actor, running on thread " + Environment.CurrentManagedThreadId + " storing book " + this.state?.Description);
 
     protected override void PostStop()
     {
@@ -55,7 +60,7 @@ public class BookActor : UntypedActor
         subscription?.Dispose();
     }
 
-    public static Props Props(IObservable<Book> b, String bookName) => Akka.Actor.Props.Create(() => new BookActor(b, bookName));
+    public static Props Props(IObservable<Book> b, string bookName) => Akka.Actor.Props.Create(() => new BookActor(b, bookName));
 
 
 }
