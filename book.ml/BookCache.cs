@@ -10,7 +10,7 @@ public class BookCache
     private readonly IDisposable streamConnection;
 
     private readonly BookSearch bookSearch = new BookSearch("https://www.googleapis.com/books/v1/volumes?q=");
-    private readonly ConcurrentDictionary<string, Book> bookDiscovery = new(); 
+    private readonly ConcurrentDictionary<string, byte> trackedBookNames = new(); 
     private readonly ConcurrentDictionary<string, byte> inFlightBooks = new();
 
     public BookCache()
@@ -21,8 +21,8 @@ public class BookCache
             .Timer(TimeSpan.Zero, TimeSpan.FromSeconds(5), TaskPoolScheduler.Default)
             .SelectMany(_ =>
             {
-                Console.WriteLine("Broj kljuceva " + bookDiscovery.Keys.Count);
-                return bookDiscovery.Keys.ToObservable();
+                Console.WriteLine("Broj kljuceva " + trackedBookNames.Keys.Count);
+                return trackedBookNames.Keys.ToObservable();
             });
 
         IObservable<string> requestedBooksStream = missingBookRequestSink
@@ -40,44 +40,13 @@ public class BookCache
         streamConnection = connectedObservable.Connect();
     }
 
-    public HashSet<String> checkCache(HashSet<String> books)
-    {
-        HashSet<String> undiscoveredBooks = new HashSet<String>();
-
-        foreach(String book in books)
-        {
-            string normalizedBookName = normalizeBookName(book);
-            if(!bookDiscovery.ContainsKey(normalizedBookName))
-                undiscoveredBooks.Add(normalizedBookName); 
-                
-            
-        }  
-
-        return undiscoveredBooks; 
-    }
-
     public void requestMissingBooks(IEnumerable<string> books)
     {
         foreach (string book in books.Select(normalizeBookName).Where(book => !string.IsNullOrWhiteSpace(book)))
         {
+            trackedBookNames.TryAdd(book, 0);
             missingBookRequestSink.OnNext(book);
         }
-    }
-
-    public HashSet<Book> getBooksForTopicModeling(HashSet<string> books)
-    {
-        HashSet<Book> discoveredBooks = new HashSet<Book>();
-
-        foreach (string bookName in books)
-        {
-            string normalizedBookName = normalizeBookName(bookName);
-            if (bookDiscovery.TryGetValue(normalizedBookName, out Book? book))
-            {
-                discoveredBooks.Add(book);
-            }
-        }
-
-        return discoveredBooks;
     }
 
     public IObservable<Book> getBooksObservable () => this.bookObservable;
@@ -89,8 +58,8 @@ public class BookCache
             .Do(book =>
             {
                 string normalizedBookName = normalizeBookName(book.Name);
-                bookDiscovery.AddOrUpdate(normalizedBookName, book, (_, _) => book);
-                Console.WriteLine("Rx stored book " + normalizedBookName + " on thread " + Environment.CurrentManagedThreadId);
+                trackedBookNames.TryAdd(normalizedBookName, 0);
+                Console.WriteLine("Rx emitted book " + normalizedBookName + " on thread " + Environment.CurrentManagedThreadId);
             })
             .Catch<Book, Exception>(error =>
             {

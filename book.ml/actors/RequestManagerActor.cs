@@ -17,7 +17,6 @@ public class RequestManagerActor : UntypedActor
     private readonly BookCache kes;
     private readonly Dictionary<Guid, IActorRef> groupsByRequestId = new();
     private readonly Dictionary<IActorRef, Guid> requestIdsByGroup = new();
-    private readonly Dictionary<string, IActorRef> bookActorsByName = new();
 
     public RequestManagerActor(BookCache k)
     {
@@ -46,8 +45,6 @@ public class RequestManagerActor : UntypedActor
             .Where(book => !string.IsNullOrWhiteSpace(book))
             .ToHashSet();
 
-        EnsureBookActors(normalizedBooks);
-
         IActorRef group = Context.ActorOf(RequestGroupActor.Props(normalizedBooks, kes), actorName);
 
         groupsByRequestId[requestId] = group;
@@ -58,22 +55,6 @@ public class RequestManagerActor : UntypedActor
         Log.Info($"Active request groups: {groupsByRequestId.Count}");
 
         group.Tell("read", replyTo);
-    }
-
-    private void EnsureBookActors(HashSet<string> books)
-    {
-        foreach (string book in books)
-        {
-            if (bookActorsByName.ContainsKey(book))
-            {
-                continue;
-            }
-
-            IActorRef bookActor = Context.ActorOf(BookActor.Props(kes.getBooksObservable(), book));
-            bookActorsByName[book] = bookActor;
-            bookActor.Tell("read");
-            Log.Info($"Created state actor for {book}");
-        }
     }
 
     private void RemoveRequestGroup(IActorRef group)

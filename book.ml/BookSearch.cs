@@ -19,13 +19,11 @@ public class BookSearch
 
     public async Task<Book> search(String endpoint)
     {
-        Console.WriteLine(Environment.CurrentManagedThreadId);
         String searchEndpoint = this.URL + endpoint + "&key=" + keys.loadKeys();
         String desc = "";
         using var client = new HttpClient();
         try{
         GoogleBookResponse? response = await client.GetFromJsonAsync<GoogleBookResponse>(searchEndpoint);
-        Console.WriteLine("after " + Environment.CurrentManagedThreadId);
         foreach(GoogleBook res in response!.Items)
         {
             if(res.VolumeInfo!.Description != null)
