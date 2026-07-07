@@ -18,28 +18,14 @@ public class BookActor : UntypedActor
         public Book book { get; }
     }
 
-    public sealed class GetBookData
+    public sealed class BookStreamReady
     {
-        public GetBookData(int queryId)
+        public BookStreamReady(string bookName)
         {
-            QueryId = queryId;
-        }
-
-        public int QueryId { get; }
-    }
-
-    public sealed class BookDataResponse
-    {
-        public BookDataResponse(int queryId, string bookName, Book? book)
-        {
-            QueryId = queryId;
             BookName = bookName;
-            Book = book;
         }
 
-        public int QueryId { get; }
         public string BookName { get; }
-        public Book? Book { get; }
     }
 
     public sealed class BookDataReady
@@ -78,9 +64,6 @@ public class BookActor : UntypedActor
                 Print();
                 Context.Parent.Tell(new BookDataReady(bookName, updated.book), Self);
                 break;
-            case GetBookData request:
-                Sender.Tell(new BookDataResponse(request.QueryId, bookName, state), Self);
-                break;
         }
     }
 
@@ -99,6 +82,8 @@ public class BookActor : UntypedActor
                 book => self.Tell(new BookUpdated(book)),
                 e => Log.Error(e.Message),
                 ()=>Log.Info("STREAM OVER"));
+
+        Context.Parent.Tell(new BookStreamReady(bookName), Self);
     }
 
     private void Print() => Log.Info("hello from book actor, running on thread " + Environment.CurrentManagedThreadId + " storing book " + this.state?.Description);

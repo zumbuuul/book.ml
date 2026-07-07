@@ -9,11 +9,9 @@ public class RequestGroupActor : UntypedActor
     private readonly HashSet<string> books;
     private readonly BookCache kes;
     private readonly IObservable<Book> bookObservable;
-    private readonly Dictionary<string, IActorRef> bookActorsByName = new();
     private readonly Dictionary<string, Book> collectedBooks = new();
-    private HashSet<IActorRef> pendingBookReplies = new();
+    private HashSet<string> pendingBookSubscriptions = new();
     private HashSet<string> missingBooks = new();
-    private int currentQueryId;
     private bool requestContinued;
     public RequestGroupActor(HashSet<string> b, BookCache k)
     {
@@ -29,8 +27,8 @@ public class RequestGroupActor : UntypedActor
                 replyTo = Sender;
                 StartRequest();
                 break;
-            case BookActor.BookDataResponse response:
-                handleBookDataResponse(response, Sender);
+            case BookActor.BookStreamReady ready:
+                bookStreamReady(ready.BookName);
                 break;
             case BookActor.BookDataReady ready:
                 bookArrived(ready);
@@ -47,8 +45,15 @@ public class RequestGroupActor : UntypedActor
 
     private void StartRequest()
     {
+        if (books.Count == 0)
+        {
+            continueRequest();
+            return;
+        }
+
+        missingBooks = books.ToHashSet();
+        pendingBookSubscriptions = books.ToHashSet();
         createBookActors();
-        queryBookActors();
     }
 
     private void createBookActors()
@@ -56,64 +61,29 @@ public class RequestGroupActor : UntypedActor
         foreach (string book in books)
         {
             IActorRef bookActor = Context.ActorOf(BookActor.Props(bookObservable, book));
-            bookActorsByName[book] = bookActor;
             bookActor.Tell(new BookActor.StartReading());
             Log.Info("Created request child actor for " + book);
         }
     }
 
-    private void queryBookActors()
+    private void bookStreamReady(string bookName)
     {
-        currentQueryId++;
-        collectedBooks.Clear();
-        pendingBookReplies = bookActorsByName.Values.ToHashSet();
-
-        if (pendingBookReplies.Count == 0)
+        if (!pendingBookSubscriptions.Remove(bookName))
         {
-            continueRequest();
             return;
         }
 
-        foreach (IActorRef bookActor in pendingBookReplies)
+        Log.Info("Child actor subscribed for " + bookName + ". Still waiting for subscriptions: " + pendingBookSubscriptions.Count);
+
+        if (pendingBookSubscriptions.Count == 0)
         {
-            bookActor.Tell(new BookActor.GetBookData(currentQueryId), Self);
+            requestMissingBooks();
         }
     }
 
-    private void handleBookDataResponse(BookActor.BookDataResponse response, IActorRef sender)
+    private void requestMissingBooks()
     {
-        if (response.QueryId != currentQueryId)
-        {
-            return;
-        }
-
-        pendingBookReplies.Remove(sender);
-
-        if (response.Book != null)
-        {
-            collectedBooks[response.BookName] = response.Book;
-        }
-
-        if (pendingBookReplies.Count == 0)
-        {
-            completeBookQuery();
-        }
-    }
-
-    private void completeBookQuery()
-    {
-        missingBooks = books
-            .Where(book => !collectedBooks.ContainsKey(book))
-            .ToHashSet();
-
-        Log.Info("Missing books " + missingBooks.Count + " on thread " + Environment.CurrentManagedThreadId);
-
-        if (missingBooks.Count == 0)
-        {
-            continueRequest();
-            return;
-        }
-
+        Log.Info("Requesting " + missingBooks.Count + " missing books on thread " + Environment.CurrentManagedThreadId);
         kes.requestMissingBooks(missingBooks);
     }
 
