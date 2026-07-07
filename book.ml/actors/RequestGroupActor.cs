@@ -33,7 +33,7 @@ public class RequestGroupActor : UntypedActor
                 handleBookDataResponse(response, Sender);
                 break;
             case BookActor.BookDataReady ready:
-                bookArrived(ready.BookName);
+                bookArrived(ready);
                 break;
             case topicModelingCompleted completed:
                 completeRequest(completed);
@@ -89,7 +89,7 @@ public class RequestGroupActor : UntypedActor
 
         pendingBookReplies.Remove(sender);
 
-        if (response.Book is not null)
+        if (response.Book != null)
         {
             collectedBooks[response.BookName] = response.Book;
         }
@@ -152,18 +152,20 @@ public class RequestGroupActor : UntypedActor
         Context.Stop(Self);
     }
 
-    private void bookArrived(string bookName)
+    private void bookArrived(BookActor.BookDataReady ready)
     {
-        if (!missingBooks.Remove(bookName))
+        if (!missingBooks.Remove(ready.BookName))
         {
             return;
         }
 
-        Log.Info("Child actor received missing book " + bookName + ". Still missing: " + missingBooks.Count);
+        collectedBooks[ready.BookName] = ready.Book;
+
+        Log.Info("Child actor received missing book " + ready.BookName + ". Still missing: " + missingBooks.Count);
 
         if (missingBooks.Count == 0)
         {
-            queryBookActors();
+            continueRequest();
         }
     }
 

@@ -44,12 +44,14 @@ public class BookActor : UntypedActor
 
     public sealed class BookDataReady
     {
-        public BookDataReady(string bookName)
+        public BookDataReady(string bookName, Book book)
         {
             BookName = bookName;
+            Book = book;
         }
 
         public string BookName { get; }
+        public Book Book { get; }
     }
 
     private ILoggingAdapter Log {get;} = Context.GetLogger();
@@ -74,7 +76,7 @@ public class BookActor : UntypedActor
             case BookUpdated updated:
                 this.state = updated.book;
                 Print();
-                Context.Parent.Tell(new BookDataReady(bookName), Self);
+                Context.Parent.Tell(new BookDataReady(bookName, updated.book), Self);
                 break;
             case GetBookData request:
                 Sender.Tell(new BookDataResponse(request.QueryId, bookName, state), Self);
@@ -84,7 +86,7 @@ public class BookActor : UntypedActor
 
     private void StartBookStream()
     {
-        if (subscription is not null)
+        if (subscription != null)
         {
             return;
         }
